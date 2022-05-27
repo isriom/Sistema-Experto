@@ -29,13 +29,18 @@ contenido:
 /*Hechos/
 */
 pistas(p1,p2-1,p2-2,p3).
-pista(p1,1,pequeñas).
+pista(p1,1,pequenas).
 
-aviones(["Embraer Phenom","Beechcraft","Cessna","Boing717","Embraer 190","Air Bus A220","Boing 747","AirBus A340","AirBus A380"]).
+aviones(["Embraer Phenom","Beechcraft","Cessna","Boeing 717","Embraer 190","Air Bus A220","Boeing 747","AirBus A340","AirBus A380"]).
+tamano(["Cessna","Beechcraft","Embraer Phenom"],pequeno).
+tamano(["Boeing 717","Embraer 190","AirBus A220"],mediano).
+tamano(["Boeing 747","AirBus A340","AirBus A380"],grande).
 
-emergencias(["Perdida de motor", "Parto en Medio Vuelo", "Paro Cardiaco de Pasajero", "Secuestro"]).
+emergencias(["Perdida de motor", "Parto en Medio Vuelo", "Paro Cardiaco de Pasajero", "Secuestro","Mayday"]).
 
-respuestaemergencias(["Llamar a Bomberos", "Llamar a médico", "Llamar médico", "Llamar a seguridad"]).
+respuestaemergencias(["Llamar a Bomberos", "Llamar a medico", "Llamar medico", "Llamar a seguridad"]).
+
+condicionesaterrizaje([velocidad_viento,dir_viento,peso_aeronave,velocidad_avion]).
 
 /*operaciones de lista
 */
@@ -158,7 +163,7 @@ sustantivo([singular,masculino,_],["MayCEy"|S],S).
 
 verbo([singular,_,_],["solicito"|S],S).
 verbo([singular,_,1],["quiero"|S],S).
-verbo([singular,_,1],["perdí"|S],S).
+verbo([singular,_,1],["perdi"|S],S).
 
 
 saludos(["hola","saludos"]).
@@ -174,3 +179,28 @@ test interactuar
 */
 analizartexto(TEXTO,SALIDA):-split_string(TEXTO," ","",INTERMEDIO),oracion(INTERMEDIO,[],SALIDA),print(INTERMEDIO),print(SALIDA),not(var(SALIDA)).
 
+
+/*
+Llamar a MayCEy
+*/
+iniciar:- write("Sistema en linea.\n"),
+    read(X), 
+    string_lower(X,X2),
+    split_string(X2," ",X3),
+    analizartexto2(X3).
+
+analizartexto2(TEXTO):- analizartexto(TEXTO, CLAVES), identificartipo(CLAVES,Tipo).
+identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),saludos(X),!, Tipo is saludo.
+identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),peticion(X),!, Tipo is peticion.
+identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),pregunta(X),!, Tipo is pregunta.
+identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),despedida(X),!, Tipo is despedida.
+
+handle_saludo:-
+
+handle_solicitud:-
+
+handle_pregunta:-
+
+handle_despedida:-
+
+asignar_pista(Avion,Direccion):-
