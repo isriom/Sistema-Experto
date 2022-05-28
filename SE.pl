@@ -39,6 +39,8 @@ proporcion(pequeno,[pequena,mediana,grande]).
 proporcion(mediano,[mediana,grande]).
 proporcion(grande,[grande]).
 
+direcciones(["norte","sur","este","oeste"]).
+
 puede_aterrizar(PISTA,AVION,DIRECCION):-
 	pista(PISTA,DIRECCION,X),
 	tamano(AVIONES,Y),
@@ -54,8 +56,6 @@ tamano(["Boeing747","AirBusA340","AirBusA380"],grande).
 emergencias(["Perdida de motor", "Parto en Medio Vuelo", "Paro Cardiaco de Pasajero", "Secuestro","Mayday","MaydayMayday"]).
 
 respuestaemergencias(["Llamar a Bomberos", "Llamar a medico", "Llamar medico", "Llamar a seguridad"]).
-
-condicionesaterrizaje([velocidad_viento,dir_viento,peso_aeronave,velocidad_avion]).
 
 /*operaciones de lista
 */
@@ -78,7 +78,9 @@ oracion->saludo, oracion
 oracion->emergencia
 oracion->sintagma_nominal
 oracion->sintagma_verbal
+oracion->despedida
 oracion->
+
 
 sintagma_nominal-> determinante, sustantivo
 sintagma_nominal-> sustantivo
@@ -110,6 +112,10 @@ oracion(S0,S,Z):-
     sintagma_nominal(_,S0,S,Z).
 oracion(S0,S,Z):-
     sintagma_verbal(_,S0,S,Z).
+oracion(S0,S,Z):-
+    despedida(_,S0,S1),
+    oracion(S1,S,Z).
+
 
 oracion(_,_,[empty]).
 
@@ -155,6 +161,7 @@ sintagma_verbal(P,S0,S,[M,F]):-
 infinitivos(["despegar","aterrizar"]).
 saludos(["hola","saludos","buenas"]).
 verbos(["solicita","solicito","quiero","Perdi"]).
+despedidas(["cambio","fuera"]).
 
 
 determinante([singular,masculino,_],["el"|S],S).
@@ -182,57 +189,158 @@ verbo([singular,_,1],[N|S],S):-
 	verbos(X),
 	miembro(N,X).
 
-peticiones(["solicito","quiero"]).
-
-despedidas(["cambio","fuera"]).
-
-saludos(["hola","saludos"]).
 saludo([singular,_,_],[N|S],S):-
     saludos(X),
+    miembro(N,X).
+despedida([singular,_,_],[N|S],S):-
+    despedidas(X),
     miembro(N,X).
 
 
 
 
 /*
-test interactuar
+interactuar
 */
-analizartexto(TEXTO,SALIDA):-split_string(TEXTO," ","",INTERMEDIO),oracion(INTERMEDIO,[],SALIDA),print(INTERMEDIO),print(SALIDA),not(var(SALIDA)).
+%Procesa el texto y obtiene las palabras claves
+analizartexto(TEXTO,SALIDA):-
+    split_string(TEXTO," ","",INTERMEDIO),
+    oracion(INTERMEDIO,[],SALIDA),
+    print(INTERMEDIO),
+    print(SALIDA),
+    not(var(SALIDA)).
+
+% prepara la obtencion de parametros extras, y trabaja sobre las claves
+% obtenidas para resolver el caso.
+analizar(TEXTO):- analizartexto(TEXTO, CLAVES),
+    identificartipo(CLAVES,Tipo),
+    verificardatos(Tipo,CLAVES,DATOS),
+    resolver(Tipo,DATOS).
+
+% Busca en las palabras claves palabras que le permitan identificar el
+% caso
+identificartipo(CLAVES,emergencia):-
+    miembro(X,CLAVES),
+    emergencias(X),
+    !.
+identificartipo(CLAVES,saludo):-
+    miembro(saludo,CLAVES),
+    handle_saludo_respuesta,
+    repeat().
+identificartipo(CLAVES,aterrizaje):-
+    miembro(["aterrizar"],CLAVES),
+    !.
+identificartipo(CLAVES,despegue):-
+    miembro(["despegar"],CLAVES),
+    !.
+identificartipo(CLAVES,despedida):-
+    miembro(X,CLAVES),despedidas(X),
+    !.
+identificartipo(CLAVES,empty):-
+    miembro(empty,CLAVES),
+    !.
+
+%respuestas pre-decididas segun el caso
+handle_saludo:- write("Hola, ¿En que te puedo ayudar?").
+handle_saludo_respuesta:- write("Hola").
+
+handle_despedida:-write("Hasta luego").
+
+handle_emergencia:- write("Entiendo, porfavor aterrize en la pista 3, ya los vehiculos de emergencia estan de camino").
+
+%verifica que se tengan todos los datos para continuar con el caso.
+verificardatos(emergencia,CLAVES,[AVION|EMERGENCIA]):-
+    verificaremergencia(CLAVES,EMERGENCIA),
+    verificaravion(CLAVES,AVION).
+
+verificardatos(aterrizaje,CLAVES,[AVION|DIRECCION]):-
+    verificaravion(CLAVES,AVION),
+    verificardireccion(CLAVES,DIRECCION).
+
+verificardatos(despegue,CLAVES,[AVION|DIRECCION]):-
+    verificaravion(CLAVES,AVION),
+    verificardireccion(CLAVES,DIRECCION).
+
+verificardatos(empty,Claves,Claves).
+
+
+
+%verifica datos especificos
+verificaremergencia(CLAVES,EMERGENCIA):-
+    miembro(EMERGENCIA,CLAVES),
+    miembro(EMERGENCIA,EMERGENCIAS),
+    emergencias(EMERGENCIAS).
+verificaremergencia(_,EMERGENCIA):-
+    write("Por favor indiquenos su emergencia"),
+    read(EMERGENCIA).
+
+verificaravion(CLAVES,AVION):-
+    miembro(AVION,CLAVES),
+    miembro(AVION,AVIONES),
+    aviones(AVIONES).
+verificaravion(_,AVION):-
+    write("Por favor indiquenos su modelo"),
+    read(AVION).
+
+verificardireccion(CLAVES,DIRECCION):-
+    miembro(DIRECCION,CLAVES),
+    miembro(DIRECCION,DIRECCIONES),
+    direcciones(DIRECCIONES).
+verificardireccion(_,DIRECCION):-
+    write("Por favor indiquenos su direccion"),
+    read(DIRECCION).
+
+
+%Resolver caso
+%Asigna la pista o repite el proceso segun el caso
+% vienen primero las funciones que hacen uso del asserta, ya que no
+% sabemos si se debia usar y ya es un poco tarde para preguntar.
+/*
+resolver(emergencia,[AVION,EMERGENCIA]):-
+    handle_emergencia
+   ,asserta(emergencia(AVION,EMERGENCIA,p3))
+   .
+*/
+resolver(emergencia,_):-
+    handle_emergencia .
+
+resolver(aterrizaje,[AVION,DIRECCION]):-
+    asignar_pista(AVION,DIRECCION).
+
+resolver(despegue,[AVION,DIRECCION]):-
+    asignar_pista(AVION,DIRECCION).
+
+resolver(empty,Claves1):-
+    write("Disculpa no entendi, podrias repetir"),
+    read(X),
+    string_lower(X,TEXTO),
+    analizartexto(TEXTO, CLAVES2),
+    concatenar(Claves1,CLAVES2,CLAVES),
+    identificartipo(CLAVES,Tipo),
+    verificardatos(Tipo,CLAVES,DATOS),
+    resolver(Tipo,DATOS).
+
+/*
+asignar_pista(AVION,DIRECCION):-
+    asignarpista(PISTA),puede_aterrizar(PISTA,AVION,DIRECCION),not(ocupado(PISTA,_,_)),asserta(ocupado(PISTA,AVION,DIRECCION)).
+*/
+asignar_pista(AVION,DIRECCION):-
+    asignarpista(PISTA),puede_aterrizar(PISTA,AVION,DIRECCION).
+
+asignarpista(p1):- write("Se le reserva la pista P1 por cinco minutos. \n").
+asignarpista(p21):- write("Se le reserva la pista P2-1, sentido este a oeste, por cinco minutos. \n").
+asignarpista(p22):- write("Se le reserva la pista P2-2, sentido oeste a este, por cinco minutos. \n").
+asignarpista(p3):- write("Se le reserva la pista P3 por cinco minutos. \n").
+
 
 
 /*
 Llamar a MayCEy
 */
-iniciar:-read(X), 
+iniciar(X):-
+    write("Ya puede digitar"),
+    nl,
+    read_line_to_string(user_input,X),
     string_lower(X,X2),
-    analizartexto2(X2).
-
-analizartexto2(TEXTO):- analizartexto(TEXTO, CLAVES), identificartipo(CLAVES,Tipo).
-
-identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),saludos(X),!, handle_saludo.
-identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),peticiones(X),!, handle_peticion(CLAVES).
-/*identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),pregunta(X),!, handle_pregunta(CLAVES).*/
-identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),despedida(X),!, handle_despedida.
-identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),emergencias(X),!, handle_emergencia.
-identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),Tipo is normal.
-
-handle_saludo:- write("Hola, Â¿En que te puedo ayudar?"),iniciar.
-
-
-handle_peticion(Claves):-write("Peticion"),iniciar.
-
-/*handle_pregunta(Claves):-write("Pregunta").*/
-
-handle_despedida:-write("Despedida").
-
-handle_emergencia:- write("Emergencia"),iniciar.
-
-asignar_pista(Avion,Direccion):-tamano(Avion,pequeno), asignarpista1.
-asignar_pista(Avion,Direccion):-tamano(Avion,mediano),dir_vuelo(oeste),asignarpista21.
-asignar_pista(Avion,Direccion):-tamano(Avion,mediano),dir_vuelo(este),asignarpista22.
-asignar_pista(Avion,Direccion):-tamano(Avion,grande),asignarpista3.
-
-asignarpista1:- write("Se le reserva la pista P1 por cinco minutos. \n").
-asignarpista21:- write("Se le reserva la pista P2-1, sentido este a oeste, por cinco minutos. \n").
-asignarpista22:- write("Se le reserva la pista P2-2, sentido oeste a este, por cinco minutos. \n").
-asignarpista3:- write("Se le reserva la pista P3 por cinco minutos. \n").
+    write("danos un momento"),
+    analizar(X2).
