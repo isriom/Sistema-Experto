@@ -28,15 +28,30 @@ contenido:
 
 /*Hechos/
 */
-pistas(p1,p2-1,p2-2,p3).
-pista(p1,1,pequenas).
+pistas(p1,p2_1,p2_2,p3).
+pista(p1,_,pequena).
+pista(p21,"este",mediana).
+pista(p22,"oeste",mediana).
+pista(p3,_,grande).
 
-aviones(["Embraer Phenom","Beechcraft","Cessna","Boeing 717","Embraer 190","Air Bus A220","Boeing 747","AirBus A340","AirBus A380"]).
-tamano(["Cessna","Beechcraft","Embraer Phenom"],pequeno).
-tamano(["Boeing 717","Embraer 190","AirBus A220"],mediano).
-tamano(["Boeing 747","AirBus A340","AirBus A380"],grande).
+%(tamaño de avion)(tamaño de pista donde puede aterrizar).
+proporcion(pequeno,[pequena,mediana,grande]).
+proporcion(mediano,[mediana,grande]).
+proporcion(grande,[grande]).
 
-emergencias(["Perdida de motor", "Parto en Medio Vuelo", "Paro Cardiaco de Pasajero", "Secuestro","Mayday"]).
+puede_aterrizar(PISTA,AVION,DIRECCION):-
+	pista(PISTA,DIRECCION,X),
+	tamano(AVIONES,Y),
+	miembro(AVION, AVIONES),
+	proporcion(Y,Z),
+	miembro(X,Z).
+
+aviones(["EmbraerPhenom","Beechcraft","Cessna","Boeing717","Embraer190","AirBusA220","Boeing747","AirBusA340","AirBusA380"]).
+tamano(["Cessna","Beechcraft","EmbraerPhenom"],pequeno).
+tamano(["Boeing717","Embraer190","AirBusA220"],mediano).
+tamano(["Boeing747","AirBusA340","AirBusA380"],grande).
+
+emergencias(["Perdida de motor", "Parto en Medio Vuelo", "Paro Cardiaco de Pasajero", "Secuestro","Mayday","MaydayMayday"]).
 
 respuestaemergencias(["Llamar a Bomberos", "Llamar a medico", "Llamar medico", "Llamar a seguridad"]).
 
@@ -54,7 +69,7 @@ miembro(X,[_|L]):-miembro(X,L).
 
 
 /*BNF
-/No Terminales/
+No Terminales
 raiz->oracion
 
 oracion->sintagma_nominal, sintagma_verbal
@@ -74,22 +89,23 @@ sintagma_preposicional-> enlace
 
 enlace-> preposicion, infinitivo
 
-/Terminales/
+Terminales
 determinante,sustantivo,verbo,preposicion,infinitivo,saludo
-
 */
 oracion(S0,S,[M|D]):-
     sintagma_nominal(P,S0,S1,M),
     sintagma_verbal(P,S1,S,D).
+oracion(S0,S,[M,F|D]):-
+    sintagma_nominal(P,S0,S1,M),
+    sintagma_verbal(P,S1,S2,D),
+    sintagma_preposicional(P,S2,S,F).
 oracion(S0,S,Z):-
     sintagma_verbal(P,S0,S1,D),
     sintagma_preposicional(P,S1,S,M),
     concatenar([M],D,Z).
-oracion(S0,S,[saludo,M]):-
+oracion(S0,S,Y):-
     saludo(_,S0,S1),
-    oracion(S1,S,M).
-%oracion(S0,S,Z):-
-  %  emergencia(S0,S,Z).
+    oracion(S1,S,M),concatenar([saludo],M,Y).
 oracion(S0,S,Z):-
     sintagma_nominal(_,S0,S,Z).
 oracion(S0,S,Z):-
@@ -134,23 +150,24 @@ sintagma_verbal(P,S0,S,[M,F]):-
     sintagma_nominal(_,S1,S,M),
     cabeza(S0,F).
 
-/*
-emergencia(S0,S,[F,M]):-
-    sintagma_verbal(_,S0,S1,F),
-    oracion(S1,S,M).
-*/
 %Lenguaje natural
 
-determinante([singular,masculino,_],[el|S],S).
-determinante([singular,femenino,_],[la|S],S).
-determinante([plural,femenino,_],[las|S],S).
+infinitivos(["despegar","aterrizar"]).
+saludos(["hola","saludos","buenas"]).
+verbos(["solicita","solicito","quiero","Perdi"]).
+
+
+determinante([singular,masculino,_],["el"|S],S).
+determinante([singular,femenino,_],["la"|S],S).
+determinante([plural,femenino,_],["las"|S],S).
 
 
 preposicion([_,_,_],["para"|S],S).
 
 
-infinitivo([_,_,_],["despegar"|S],S).
-infinitivo([_,_,_],["aterrizar"|S],S).
+infinitivo([_,_,_],[N|S],S):-
+	infinitivos(X),
+	miembro(N,X).
 
 
 sustantivo([singular,masculino,_],[N|S],S):-
@@ -161,12 +178,11 @@ sustantivo([singular,masculino,_],["permiso"|S],S).
 sustantivo([singular,masculino,_],["MayCEy"|S],S).
 
 
-verbo([singular,_,_],["solicito"|S],S).
-verbo([singular,_,1],["quiero"|S],S).
-verbo([singular,_,1],["perdi"|S],S).
+verbo([singular,_,1],[N|S],S):-
+	verbos(X),
+	miembro(N,X).
 
 
-saludos(["hola","saludos"]).
 saludo([singular,_,_],[N|S],S):-
     saludos(X),
     miembro(N,X).
@@ -182,9 +198,9 @@ analizartexto(TEXTO,SALIDA):-split_string(TEXTO," ","",INTERMEDIO),oracion(INTER
 
 /*
 Llamar a MayCEy
-*/
+
 iniciar:- write("Sistema en linea.\n"),
-    read(X), 
+    read(X),
     string_lower(X,X2),
     split_string(X2," ",X3),
     analizartexto2(X3).
@@ -203,4 +219,4 @@ handle_pregunta:-
 
 handle_despedida:-
 
-asignar_pista(Avion,Direccion):-
+asignar_pista(Avion,Direccion):-*/
