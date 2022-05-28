@@ -182,7 +182,11 @@ verbo([singular,_,1],[N|S],S):-
 	verbos(X),
 	miembro(N,X).
 
+peticiones(["solicito","quiero"]).
 
+despedidas(["cambio","fuera"]).
+
+saludos(["hola","saludos"]).
 saludo([singular,_,_],[N|S],S):-
     saludos(X),
     miembro(N,X).
@@ -198,25 +202,37 @@ analizartexto(TEXTO,SALIDA):-split_string(TEXTO," ","",INTERMEDIO),oracion(INTER
 
 /*
 Llamar a MayCEy
-
-iniciar:- write("Sistema en linea.\n"),
-    read(X),
+*/
+iniciar:-read(X), 
     string_lower(X,X2),
-    split_string(X2," ",X3),
-    analizartexto2(X3).
+    analizartexto2(X2).
 
 analizartexto2(TEXTO):- analizartexto(TEXTO, CLAVES), identificartipo(CLAVES,Tipo).
-identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),saludos(X),!, Tipo is saludo.
-identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),peticion(X),!, Tipo is peticion.
-identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),pregunta(X),!, Tipo is pregunta.
-identificartipo(CLAVES,Tipo):- miembro(CLAVES,X),despedida(X),!, Tipo is despedida.
 
-handle_saludo:-
+identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),saludos(X),!, handle_saludo.
+identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),peticiones(X),!, handle_peticion(CLAVES).
+/*identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),pregunta(X),!, handle_pregunta(CLAVES).*/
+identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),despedida(X),!, handle_despedida.
+identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),emergencias(X),!, handle_emergencia.
+identificartipo(CLAVES,Tipo):- miembro(X,CLAVES),Tipo is normal.
 
-handle_solicitud:-
+handle_saludo:- write("Hola, ¿En que te puedo ayudar?"),iniciar.
 
-handle_pregunta:-
 
-handle_despedida:-
+handle_peticion(Claves):-write("Peticion"),iniciar.
 
-asignar_pista(Avion,Direccion):-*/
+/*handle_pregunta(Claves):-write("Pregunta").*/
+
+handle_despedida:-write("Despedida").
+
+handle_emergencia:- write("Emergencia"),iniciar.
+
+asignar_pista(Avion,Direccion):-tamano(Avion,pequeno), asignarpista1.
+asignar_pista(Avion,Direccion):-tamano(Avion,mediano),dir_vuelo(oeste),asignarpista21.
+asignar_pista(Avion,Direccion):-tamano(Avion,mediano),dir_vuelo(este),asignarpista22.
+asignar_pista(Avion,Direccion):-tamano(Avion,grande),asignarpista3.
+
+asignarpista1:- write("Se le reserva la pista P1 por cinco minutos. \n").
+asignarpista21:- write("Se le reserva la pista P2-1, sentido este a oeste, por cinco minutos. \n").
+asignarpista22:- write("Se le reserva la pista P2-2, sentido oeste a este, por cinco minutos. \n").
+asignarpista3:- write("Se le reserva la pista P3 por cinco minutos. \n").
